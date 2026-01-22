@@ -125,7 +125,7 @@
     </audio>
 
     <!-- Mute Toggle (Absolute Top Left) -->
-    <button id="mute-toggle" class="absolute top-4 left-4 z-[60] text-retro-gold text-3xl md:text-4xl drop-shadow-md hover:text-white transition-colors cursor-pointer" title="Toggle Sound">
+    <button id="mute-toggle" class="absolute top-4 right-4 z-[60] text-retro-gold text-3xl md:text-4xl drop-shadow-md hover:text-white transition-colors cursor-pointer" title="Toggle Sound">
         🔇
     </button>
 
@@ -218,26 +218,26 @@
             </div>
         </div>
 
-        <!-- Sunset Footer Indicator -->
-        <div class="absolute bottom-16 md:bottom-20 w-full flex justify-center pointer-events-none z-30">
-             <div class="bg-blue-900/90 px-4 py-1 border border-white/40 shadow-lg text-center backdrop-blur-sm">
-                <span id="sunset-label" class="text-retro-gold text-2xl md:text-3xl uppercase">SUNSET TODAY: </span>
-                <span id="sunset-time" class="text-white text-2xl md:text-3xl font-bold text-shadow animate-pulse">--:-- PM</span>
-             </div>
-        </div>
+    </div>
 
-        <!-- Marquee Footer: Fixed at bottom -->
-        <div class="absolute bottom-0 left-0 w-full h-10 md:h-12 bg-red-700 border-t-2 border-white flex items-center shadow-lg overflow-hidden z-40">
-            <div class="bg-red-800 z-20 px-3 md:px-6 h-full flex items-center font-bold text-xl md:text-3xl border-r-2 border-white shadow-xl shrink-0">
-                ALERTS
-            </div>
-            <div class="marquee-container flex-1">
-                <div id="ticker-text" class="marquee-content text-xl md:text-3xl font-bold pt-1">
-                    INITIALIZING NEWS FEED...
-                </div>
+    <!-- Sunset Footer Indicator -->
+    <div class="absolute bottom-16 md:bottom-20 left-0 w-full flex justify-center pointer-events-none z-30">
+         <div class="bg-blue-900/90 px-4 py-1 border border-white/40 shadow-lg text-center backdrop-blur-sm">
+            <span id="sunset-label" class="text-retro-gold text-2xl md:text-3xl uppercase">SUNSET TODAY: </span>
+            <span id="sunset-time" class="text-white text-2xl md:text-3xl font-bold text-shadow animate-pulse">--:-- PM</span>
+         </div>
+    </div>
+
+    <!-- Marquee Footer: Fixed at bottom -->
+    <div class="absolute bottom-0 left-0 w-full h-10 md:h-12 bg-red-700 border-t-2 border-white flex items-center shadow-lg overflow-hidden z-40">
+        <div class="bg-red-800 z-20 px-3 md:px-6 h-full flex items-center font-bold text-xl md:text-3xl border-r-2 border-white shadow-xl shrink-0">
+            ALERTS
+        </div>
+        <div class="marquee-container flex-1">
+            <div id="ticker-text" class="marquee-content text-xl md:text-3xl font-bold pt-1">
+                INITIALIZING NEWS FEED...
             </div>
         </div>
-
     </div>
 
     <script>
@@ -260,6 +260,17 @@
             }
         }
 
+        async function updateTicker() {
+            try {
+                const newsHeadlines = await fetchNews();
+                const newsString = newsHeadlines.join("... ");
+                document.getElementById('ticker-text').textContent = `${newsString}...`;
+            } catch (e) {
+                console.error("News Ticker Error:", e);
+                document.getElementById('ticker-text').textContent = "NEWS FEED OFFLINE... CHECKING SATELLITE LINK...";
+            }
+        }
+
         function updateClock() {
             const now = new Date();
             document.getElementById('clock-time').textContent = now.toLocaleTimeString('en-US');
@@ -276,11 +287,6 @@
                 const data = await response.json();
                 
                 updateUI(data);
-                
-                // Fetch Real News & Update Ticker
-                const newsHeadlines = await fetchNews();
-                const newsString = newsHeadlines.join("... ");
-                document.getElementById('ticker-text').textContent = `${newsString}...`;
                 
             } catch (error) {
                 console.error("Weather Fail", error);
@@ -468,8 +474,10 @@
             fetchWeather();
         }
 
-        fetchWeather();
-        setInterval(fetchWeather, 600000);
+        // --- App Timers ---
+        updateTicker(); // Initial news fetch
+        setInterval(updateTicker, 180000); // Refresh news every 3 minutes
+        setInterval(fetchWeather, 600000); // Refresh weather every 10 minutes
 
         // --- 2. AUDIO PLAYLIST LOGIC ---
         const playlist = ['smoothjazz.mp3', 'smoothjazz2.mp3'];
