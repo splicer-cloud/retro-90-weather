@@ -220,7 +220,7 @@
         <!-- Sunset Footer Indicator -->
         <div class="absolute bottom-12 md:bottom-14 w-full flex justify-center pointer-events-none z-30">
              <div class="bg-blue-900/90 px-4 py-1 border border-white/40 shadow-lg text-center backdrop-blur-sm">
-                <span class="text-retro-gold text-2xl md:text-3xl uppercase">SUNSET TODAY: </span>
+                <span id="sunset-label" class="text-retro-gold text-2xl md:text-3xl uppercase">SUNSET TODAY: </span>
                 <span id="sunset-time" class="text-white text-2xl md:text-3xl font-bold text-shadow animate-pulse">--:-- PM</span>
              </div>
         </div>
@@ -245,6 +245,20 @@
         let LON = -74.39;
         let locationName = "FANWOOD, NJ";
 
+        async function fetchNews() {
+            try {
+                // Fetch top stories from Hacker News API (Real Tech News)
+                const res = await fetch('https://hacker-news.firebaseio.com/v0/topstories.json');
+                const ids = await res.json();
+                const topIds = ids.slice(0, 5); // Get top 5
+                const stories = await Promise.all(topIds.map(id => fetch(`https://hacker-news.firebaseio.com/v0/item/${id}.json`).then(r => r.json())));
+                return stories.map(s => s.title.toUpperCase());
+            } catch (e) {
+                console.error("News Error", e);
+                return ["NEWS SYSTEM OFFLINE", "RETRYING CONNECTION..."];
+            }
+        }
+
         function updateClock() {
             const now = new Date();
             document.getElementById('clock-time').textContent = now.toLocaleTimeString('en-US');
@@ -262,8 +276,10 @@
                 
                 updateUI(data);
                 
-                // Update ticker
-                document.getElementById('ticker-text').textContent = `CURRENTLY IN ${locationName}... TEMP ${data.current_weather.temperature}°F... WIND ${data.current_weather.windspeed} MPH... 10-DAY OUTLOOK UPDATED...`;
+                // Fetch Real News & Update Ticker
+                const newsHeadlines = await fetchNews();
+                const newsString = newsHeadlines.join("... ");
+                document.getElementById('ticker-text').textContent = `CURRENTLY IN ${locationName}... TEMP ${data.current_weather.temperature}°F... WIND ${data.current_weather.windspeed} MPH... ${newsString}...`;
                 
             } catch (error) {
                 console.error("Weather Fail", error);
@@ -305,9 +321,18 @@
 
             // Sunset
             if (data.daily && data.daily.sunset && data.daily.sunset[0]) {
-                const sunsetDate = new Date(data.daily.sunset[0]);
+                const now = new Date();
+                let sunsetDate = new Date(data.daily.sunset[0]);
+                let labelText = "SUNSET TODAY: ";
+
+                if (now > sunsetDate && data.daily.sunset[1]) {
+                    sunsetDate = new Date(data.daily.sunset[1]);
+                    labelText = "SUNSET TOMORROW: ";
+                }
+
                 const sunsetTime = sunsetDate.toLocaleTimeString([], {hour: 'numeric', minute:'2-digit'});
                 document.getElementById('sunset-time').textContent = sunsetTime;
+                document.getElementById('sunset-label').textContent = labelText;
             }
 
             // --- 10-Day Forecast (Vertical List) ---
