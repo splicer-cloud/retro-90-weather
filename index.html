@@ -83,7 +83,7 @@
         }
         .marquee-content {
             display: inline-block;
-            animation: scroll-left 25s linear infinite;
+            animation: scroll-left 60s linear infinite;
         }
         @keyframes scroll-left {
             0% { transform: translateX(100%); }
@@ -227,10 +227,10 @@
 
         <!-- Marquee Footer: Fixed at bottom -->
         <div class="mt-4 h-10 md:h-12 bg-red-700 border-t-2 border-b-2 border-white flex items-center shadow-lg relative overflow-hidden shrink-0 z-20">
-            <div class="absolute left-0 top-0 bottom-0 bg-red-800 z-20 px-3 md:px-6 flex items-center font-bold text-xl md:text-3xl border-r-2 border-white shadow-xl">
+            <div class="bg-red-800 z-20 px-3 md:px-6 h-full flex items-center font-bold text-xl md:text-3xl border-r-2 border-white shadow-xl shrink-0">
                 ALERTS
             </div>
-            <div class="marquee-container w-full ml-24 md:ml-32">
+            <div class="marquee-container flex-1">
                 <div id="ticker-text" class="marquee-content text-xl md:text-3xl font-bold pt-1">
                     WELCOME TO LOCAL WEATHER... AUDIO SYSTEM READY... NO ACTIVE WARNINGS...
                 </div>
@@ -250,7 +250,7 @@
                 // Fetch top stories from Hacker News API (Real Tech News)
                 const res = await fetch('https://hacker-news.firebaseio.com/v0/topstories.json');
                 const ids = await res.json();
-                const topIds = ids.slice(0, 5); // Get top 5
+                const topIds = ids.slice(0, 3); // Get top 3
                 const stories = await Promise.all(topIds.map(id => fetch(`https://hacker-news.firebaseio.com/v0/item/${id}.json`).then(r => r.json())));
                 return stories.map(s => s.title.toUpperCase());
             } catch (e) {
