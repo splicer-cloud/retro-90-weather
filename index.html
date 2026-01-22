@@ -83,10 +83,11 @@
         }
         .marquee-content {
             display: inline-block;
-            animation: scroll-left 60s linear infinite;
+            padding-left: 100%;
+            animation: scroll-left 45s linear infinite;
         }
         @keyframes scroll-left {
-            0% { transform: translateX(100%); }
+            0% { transform: translateX(0); }
             100% { transform: translateX(-100%); }
         }
 
@@ -218,7 +219,7 @@
         </div>
 
         <!-- Sunset Footer Indicator -->
-        <div class="absolute bottom-12 md:bottom-14 w-full flex justify-center pointer-events-none z-30">
+        <div class="absolute bottom-16 md:bottom-20 w-full flex justify-center pointer-events-none z-30">
              <div class="bg-blue-900/90 px-4 py-1 border border-white/40 shadow-lg text-center backdrop-blur-sm">
                 <span id="sunset-label" class="text-retro-gold text-2xl md:text-3xl uppercase">SUNSET TODAY: </span>
                 <span id="sunset-time" class="text-white text-2xl md:text-3xl font-bold text-shadow animate-pulse">--:-- PM</span>
@@ -226,13 +227,13 @@
         </div>
 
         <!-- Marquee Footer: Fixed at bottom -->
-        <div class="mt-4 h-10 md:h-12 bg-red-700 border-t-2 border-b-2 border-white flex items-center shadow-lg relative overflow-hidden shrink-0 z-20">
+        <div class="absolute bottom-0 left-0 w-full h-10 md:h-12 bg-red-700 border-t-2 border-white flex items-center shadow-lg overflow-hidden z-40">
             <div class="bg-red-800 z-20 px-3 md:px-6 h-full flex items-center font-bold text-xl md:text-3xl border-r-2 border-white shadow-xl shrink-0">
                 ALERTS
             </div>
             <div class="marquee-container flex-1">
                 <div id="ticker-text" class="marquee-content text-xl md:text-3xl font-bold pt-1">
-                    WELCOME TO LOCAL WEATHER... AUDIO SYSTEM READY... NO ACTIVE WARNINGS...
+                    INITIALIZING NEWS FEED...
                 </div>
             </div>
         </div>
@@ -279,7 +280,7 @@
                 // Fetch Real News & Update Ticker
                 const newsHeadlines = await fetchNews();
                 const newsString = newsHeadlines.join("... ");
-                document.getElementById('ticker-text').textContent = `CURRENTLY IN ${locationName}... TEMP ${data.current_weather.temperature}°F... WIND ${data.current_weather.windspeed} MPH... ${newsString}...`;
+                document.getElementById('ticker-text').textContent = `${newsString}...`;
                 
             } catch (error) {
                 console.error("Weather Fail", error);
