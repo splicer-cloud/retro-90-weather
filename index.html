@@ -199,7 +199,7 @@
                         <h3 class="text-2xl md:text-3xl text-retro-gold underline decoration-2 underline-offset-4 mb-2 md:mb-4">24-HOUR FORECAST</h3>
                         
                         <!-- Horizontal container -->
-                        <div id="hourly-container" class="flex flex-row gap-4 overflow-x-auto scrollbar-hide p-1">
+                        <div id="hourly-container" class="flex flex-row gap-4 overflow-x-auto scrollbar-hide p-1 cursor-grab active:cursor-grabbing select-none">
                              <div class="text-xl md:text-2xl animate-pulse text-center mt-4 w-full">LOADING HOURLY DATA...</div>
                         </div>
                     </div>
@@ -294,9 +294,11 @@
             }
         }
 
-        function getIcon(code) {
-            if (code === 0) return '☀️';
-            if (code <= 3) return '⛅';
+        function getIcon(code, hour = null) {
+            const isNight = hour !== null && (hour >= 21 || hour < 6);
+
+            if (code === 0) return isNight ? '🌙' : '☀️';
+            if (code <= 3) return isNight ? '🌙' : '⛅';
             if (code <= 48) return '🌫️';
             if (code <= 67) return '🌧️';
             if (code <= 77) return '🌨️';
@@ -319,11 +321,12 @@
             document.getElementById('current-temp').textContent = Math.round(cur.temperature) + "°F";
             document.getElementById('current-wind').textContent = cur.windspeed + " MPH";
             document.getElementById('current-desc').textContent = getDesc(cur.weathercode);
-            document.getElementById('current-icon').textContent = getIcon(cur.weathercode);
             
-            const hour = new Date().getHours();
+            const currentHour = new Date().getHours();
+            document.getElementById('current-icon').textContent = getIcon(cur.weathercode, currentHour);
+            
             if (data.hourly && data.hourly.relativehumidity_2m) {
-                document.getElementById('current-humid').textContent = (data.hourly.relativehumidity_2m[hour] || '--') + "%";
+                document.getElementById('current-humid').textContent = (data.hourly.relativehumidity_2m[currentHour] || '--') + "%";
             }
 
             // Sunset
@@ -376,7 +379,6 @@
             
             if (data.hourly) {
                 // Find current hour index
-                const currentHour = new Date().getHours();
                 // Show next 24 hours
                 for (let i = 0; i < 24; i++) {
                     const idx = currentHour + i;
@@ -385,10 +387,12 @@
 
                     const temp = Math.round(data.hourly.temperature_2m[idx]);
                     const code = data.hourly.weathercode[idx];
-                    const icon = getIcon(code);
                     
                     // Format time (e.g., 2 PM)
                     const dateObj = new Date(data.hourly.time[idx]);
+                    const h = dateObj.getHours();
+                    const icon = getIcon(code, h);
+                    
                     const timeStr = dateObj.toLocaleTimeString('en-US', { hour: 'numeric', hour12: true });
 
                     const div = document.createElement('div');
@@ -516,6 +520,39 @@
                 // If playing, toggle mute state
                 audio.muted = !audio.muted;
                 updateMuteIcon();
+            }
+        });
+
+        // --- Drag to Scroll & Mouse Wheel Logic for Hourly Forecast ---
+        const hourlyScrollContainer = document.getElementById('hourly-container');
+        let isDown = false;
+        let startX;
+        let scrollLeft;
+
+        hourlyScrollContainer.addEventListener('mousedown', (e) => {
+            isDown = true;
+            startX = e.pageX - hourlyScrollContainer.offsetLeft;
+            scrollLeft = hourlyScrollContainer.scrollLeft;
+        });
+        hourlyScrollContainer.addEventListener('mouseleave', () => {
+            isDown = false;
+        });
+        hourlyScrollContainer.addEventListener('mouseup', () => {
+            isDown = false;
+        });
+        hourlyScrollContainer.addEventListener('mousemove', (e) => {
+            if(!isDown) return;
+            e.preventDefault();
+            const x = e.pageX - hourlyScrollContainer.offsetLeft;
+            const walk = (x - startX) * 2; // Scroll speed
+            hourlyScrollContainer.scrollLeft = scrollLeft - walk;
+        });
+        
+        // Enable mouse wheel horizontal scrolling
+        hourlyScrollContainer.addEventListener('wheel', (e) => {
+            if (e.deltaY !== 0) {
+                e.preventDefault();
+                hourlyScrollContainer.scrollLeft += e.deltaY;
             }
         });
 
