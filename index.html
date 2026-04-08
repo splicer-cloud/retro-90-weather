@@ -86,6 +86,23 @@
             padding-left: 100%;
             animation: scroll-left 45s linear infinite;
         }
+        .marquee-content:hover {
+            animation-play-state: paused;
+        }
+        .ticker-link {
+            color: #fff6b0;
+            text-decoration: none;
+            margin-right: 2.5rem;
+            text-shadow: 2px 2px 0px rgba(0,0,0,0.7);
+            transition: color 0.2s ease;
+        }
+        .ticker-link:hover {
+            color: #ffffff;
+            text-decoration: underline;
+        }
+        .ticker-source {
+            color: #ffd36a;
+        }
         @keyframes scroll-left {
             0% { transform: translateX(0); }
             100% { transform: translateX(-100%); }
@@ -245,29 +262,79 @@
         let LAT = 40.64;
         let LON = -74.39;
         let locationName = "FANWOOD, NJ";
+        const NEWS_FEEDS = [
+            { name: 'TECHCRUNCH', url: 'https://techcrunch.com/feed/' },
+            { name: 'THE VERGE', url: 'https://www.theverge.com/rss/index.xml' },
+            { name: 'ARS TECHNICA', url: 'https://feeds.arstechnica.com/arstechnica/index' }
+        ];
+
+        function buildFeedProxyUrl(feedUrl) {
+            return `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(feedUrl)}`;
+        }
+
+        async function fetchFeed(feed) {
+            const response = await fetch(buildFeedProxyUrl(feed.url));
+            if (!response.ok) {
+                throw new Error(`Feed request failed for ${feed.name}`);
+            }
+
+            const data = await response.json();
+            if (data.status !== 'ok' || !Array.isArray(data.items)) {
+                throw new Error(`Feed payload invalid for ${feed.name}`);
+            }
+
+            return data.items.slice(0, 6).map((item) => ({
+                title: item.title,
+                link: item.link,
+                source: feed.name,
+                pubDate: item.pubDate ? new Date(item.pubDate).getTime() : 0
+            }));
+        }
 
         async function fetchNews() {
-            try {
-                // Fetch top stories from Hacker News API (Real Tech News)
-                const res = await fetch('https://hacker-news.firebaseio.com/v0/topstories.json');
-                const ids = await res.json();
-                const topIds = ids.slice(0, 3); // Get top 3
-                const stories = await Promise.all(topIds.map(id => fetch(`https://hacker-news.firebaseio.com/v0/item/${id}.json`).then(r => r.json())));
-                return stories.map(s => s.title.toUpperCase());
-            } catch (e) {
-                console.error("News Error", e);
-                return ["NEWS SYSTEM OFFLINE", "RETRYING CONNECTION..."];
+            const results = await Promise.allSettled(NEWS_FEEDS.map(fetchFeed));
+            const articles = results
+                .filter((result) => result.status === 'fulfilled')
+                .flatMap((result) => result.value)
+                .filter((item) => item.title && item.link)
+                .sort((a, b) => b.pubDate - a.pubDate)
+                .slice(0, 12);
+
+            if (!articles.length) {
+                throw new Error('No tech headlines available');
             }
+
+            return articles;
         }
 
         async function updateTicker() {
+            const ticker = document.getElementById('ticker-text');
             try {
-                const newsHeadlines = await fetchNews();
-                const newsString = newsHeadlines.join("... ");
-                document.getElementById('ticker-text').textContent = `${newsString}...`;
+                const headlines = await fetchNews();
+                ticker.innerHTML = '';
+
+                headlines.forEach((item) => {
+                    const link = document.createElement('a');
+                    link.href = item.link;
+                    link.target = '_blank';
+                    link.rel = 'noopener noreferrer';
+                    link.className = 'ticker-link';
+
+                    const source = document.createElement('span');
+                    source.className = 'ticker-source';
+                    source.textContent = `[${item.source}] `;
+
+                    link.appendChild(source);
+                    link.appendChild(document.createTextNode(item.title));
+                    ticker.appendChild(link);
+                });
             } catch (e) {
                 console.error("News Ticker Error:", e);
-                document.getElementById('ticker-text').textContent = "NEWS FEED OFFLINE... CHECKING SATELLITE LINK...";
+                ticker.innerHTML = '';
+
+                const fallback = document.createElement('span');
+                fallback.textContent = "TECH NEWS FEED OFFLINE... RETRYING UPLINK...";
+                ticker.appendChild(fallback);
             }
         }
 
@@ -480,7 +547,7 @@
 
         // --- App Timers ---
         updateTicker(); // Initial news fetch
-        setInterval(updateTicker, 180000); // Refresh news every 3 minutes
+        setInterval(updateTicker, 900000); // Refresh news every 15 minutes
         setInterval(fetchWeather, 600000); // Refresh weather every 10 minutes
 
         // --- 2. AUDIO PLAYLIST LOGIC ---
